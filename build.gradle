@@ -25,6 +25,15 @@ dependencies {
 	implementation 'ch.qos.logback:logback-classic:1.4.14'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'com.h2database:h2:2.2.224'
+
+	// spring data jdbc
+	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+
+	// lombok
+	implementation('org.projectlombok:lombok')
+	annotationProcessor('org.projectlombok:lombok')
+	testImplementation('org.projectlombok:lombok')
+	testAnnotationProcessor('org.projectlombok:lombok')
 }
 
 tasks.named('test') {
