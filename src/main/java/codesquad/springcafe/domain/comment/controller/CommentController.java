@@ -1,35 +1,32 @@
 package codesquad.springcafe.domain.comment.controller;
 
 import codesquad.springcafe.domain.comment.data.CommentRequest;
+import codesquad.springcafe.domain.comment.data.CommentResponse;
 import codesquad.springcafe.domain.comment.service.CommentService;
 import codesquad.springcafe.domain.user.data.UserCredentials;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
+@RequiredArgsConstructor
 public class CommentController {
 
     private final CommentService commentService;
 
-    @Autowired
-    public CommentController(CommentService commentService) {
-        this.commentService = commentService;
-    }
-
     // 댓글 작성
     @PostMapping("/comment")
-    public String createComment(HttpSession httpSession,
-                                @Valid @ModelAttribute CommentRequest commentRequest,
-                                RedirectAttributes redirectAttributes) {
+    @ResponseBody
+    public ResponseEntity<CommentResponse> createComment(HttpSession httpSession,
+                                        @Valid @ModelAttribute CommentRequest commentRequest) {
         Long userId = getUserCredentials(httpSession).getUserId();
-        commentService.createComment(userId, commentRequest);
+        CommentResponse comment = commentService.createComment(userId, commentRequest);
 
-        redirectAttributes.addAttribute("questionId", commentRequest.getQuestionId());
-        return "redirect:/question/{questionId}";
+        return ResponseEntity.ok(comment);
     }
 
     // 댓글 삭제

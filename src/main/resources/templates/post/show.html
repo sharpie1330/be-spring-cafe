@@ -36,64 +36,27 @@
                     <div class="post-comment">
                         <div class="post-comment-slipp">
                             <p class="post-comment-count">댓글 <span th:text="${totalCommentCnt}">0</span>개</p>
-                            <div class="post-comment-slipp-articles">
-                                <div th:each="comment : ${comments}">
-                                    <article class="comment">
-                                        <div class="article-text">
-                                            <!-- 작성자 정보 표시 -->
-                                            <a th:unless="${comment.isUserWithdrawn}" th:href="'/profile/' + ${comment.userLoginId}" class="comment-content comment-author-name">
-                                                <span th:text="${comment.getUserName} + ' • ' + ${comment.userLoginId}"></span>
-                                            </a>
-                                            <a th:if="${comment.isUserWithdrawn}" class="comment-content comment-author-name">
-                                                <span th:text="${comment.userName}"></span>
-                                            </a>
-                                            <!-- 댓글 내용 표시 -->
-                                            <div class="comment-content">
-                                                <pre class="pre-comment-content" th:text="${comment.content}"></pre>
-                                            </div>
-                                            <!-- 댓글 작성 시간 표시 -->
-                                            <div class="comment-content comment-doc">
-                                                <p class="comment-content comment-time">
-                                                    <span th:if="${comment.modified}" th:text="${comment.modifiedAt} + ' (수정됨)'"></span>
-                                                    <span th:unless="${comment.modified}" th:text="${comment.modifiedAt}"></span>
-                                                </p>
-                                                <!-- 댓글 수정 및 삭제 버튼 표시 -->
-<!--                                                <a th:if="${comment.isMy}" class="comment-content comment-menu" th:href="'/comment/edit/' + ${comment.commentId}">수정</a>-->
-                                                <a th:if="${comment.isMy}" class="comment-content comment-menu" href="#" th:onclick="'submitDeleteForm(' + ${comment.commentId} + '); return false;'" role="button">삭제</a>
-                                                <form th:id="'delete-comment-' + ${comment.commentId}" style="display: none" method="post" th:action="'/comments/' + ${comment.commentId}">
-                                                    <input type="hidden" name="_method" value="DELETE" />
-                                                    <input type="hidden" name="questionId" th:value="${question.questionId}" />
-                                                    <input type="hidden" name="CSRF_TOKEN" th:value="${session.CSRF_TOKEN}">
-                                                    <button type="submit" style="display: none">삭제</button>
-                                                </form>
-
-                                                <script>
-                                                    function submitDeleteForm(commentId) {
-                                                        document.getElementById('delete-comment-' + commentId).submit();
-                                                    }
-                                                </script>
-                                            </div>
-                                        </div>
-                                    </article>
+                            <div id="comment-list" class="post-comment-slipp-articles">
+                                <div class="comment" th:replace="~{base/part/comment :: commentList(${comments})}">
                                 </div>
 
-                                <form th:unless="${question.isUserWithdrawn()}" class="submit-write" method="post" action="/comment">
-                                    <input type="hidden" name="CSRF_TOKEN" th:value="${session.CSRF_TOKEN}">
-                                    <div class="comment-writer-container">
-                                        <label for="questionId">
-                                            <input type="hidden" id="questionId" name="questionId" th:value="${question.getQuestionId()}">
-                                            <p class="comment-writer" th:text="${session.userCredentials.username}">
-                                        </label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="content">
-                                            <textarea class="form-control" id="content" name="content"
-                                                      placeholder="내용을 입력하세요" required></textarea>
-                                        </label>
-                                    </div>
-                                    <button class="post-write-btn" type="submit" onclick="$('.submit-write button[type=submit]').click(addAnswer);">등록</button>
-                                </form>
                             </div>
+                            <form th:unless="${question.isUserWithdrawn()}" class="submit-write" method="post" action="/comment">
+                                <input type="hidden" name="CSRF_TOKEN" th:value="${session.CSRF_TOKEN}">
+                                <div class="comment-writer-container">
+                                    <label for="questionId">
+                                        <input type="hidden" id="questionId" name="questionId" th:value="${question.getQuestionId()}">
+                                        <p class="comment-writer" th:text="${session.userCredentials.username}">
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="content">
+                                        <textarea class="form-control" id="content" name="content"
+                                                  placeholder="내용을 입력하세요" required></textarea>
+                                    </label>
+                                </div>
+                                <button class="post-write-btn" type="submit">등록</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -101,5 +64,97 @@
         </div>
     </div>
 </div>
+<script>
+    $(document).ready(function () {
+        $(".post-write-btn").click(addAnswer);
+    })
+
+    function submitDeleteForm(commentId) {
+        document.getElementById('delete-comment-' + commentId).submit();
+    }
+
+    function addAnswer(e) {
+        console.log('addAnswer called');
+
+        e.preventDefault();
+
+        const formData = {
+            CSRF_TOKEN: $(".submit-write input[name=CSRF_TOKEN]").val(),
+            questionId: $(".submit-write input[name=questionId]").val(),
+            content: $(".submit-write textarea[name=content]").val()
+        }
+
+        // ajax - asynchronous javascript and xml : 자바스크립트를 사용해 비동기적으로 서버와 통신하는 기술
+        // 웹 페이지를 다시 로드하지 않고도 서버로부터 데이터를 받아오거나 서버에 데이터를 보낼 수 있도록 함
+        $.ajax({
+            type: 'POST',
+            url: '/comment',
+            contentType: 'application/x-www-form-urlencoded',
+            data: formData,
+            dataType: 'json',
+            success : function (comment) {
+                console.log(comment);
+                displayComment(comment);
+                $("textarea#content")[0].value = ''
+            },
+            error : function (jqXHR, textStatus, errorThrown) {
+                alert("error: " + jqXHR.status);
+                console.log(jqXHR.responseText);
+            }
+        })
+    }
+
+    // 댓글 단건 표시 함수
+    function displayComment(comment) {
+        // 댓글 수 업데이트
+        const commentCount = $('.post-comment-count').find('span');
+        commentCount.eq(0).text(parseInt(commentCount.eq(0).text()) + 1);
+
+        // 댓글 추가
+        const commentList = document.getElementById('comment-list');
+        const div = document.createElement('div');
+        div.innerHTML = addComment(comment);
+        commentList.appendChild(div);
+    }
+
+
+    // 댓글 HTML 생성 함수
+    function addComment(comment) {
+        // userWithdrawn 여부에 따라 다른 HTML 생성
+        var userInfo;
+        if (comment.userWithdrawn) {
+            userInfo = `<span>${comment.userName}</span>`;
+        } else {
+            userInfo = `<a href="/profile/${comment.userLoginId}" class="comment-content comment-author-name">
+                        <span>${comment.userName} • ${comment.userLoginId}</span>
+                    </a>`;
+        }
+
+        return `
+    <article class="comment">
+        <div class="article-text">
+            <!-- 작성자 정보 표시 -->
+            ${userInfo}
+            <!-- 댓글 내용 표시 -->
+            <div class="comment-content">
+                <pre class="pre-comment-content">${comment.content}</pre>
+            </div>
+            <!-- 댓글 작성 시간 표시 -->
+            <div class="comment-content comment-doc">
+                <p class="comment-content comment-time">
+                    <span>${comment.modifiedAt}${comment.modified ? ' (수정됨)' : ''}</span>
+                </p>
+                <a class="comment-content comment-menu" href="#" onclick="submitDeleteForm(${comment.commentId}); return false;" role="button">삭제</a>
+                <form id="delete-comment-${comment.commentId}" style="display: none" method="post" action="/comments/${comment.commentId}">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="questionId" value="${comment.questionId}" />
+                    <input type="hidden" name="CSRF_TOKEN" value="${sessionStorage.getItem('CSRF_TOKEN')}">
+                    <button type="submit" style="display: none">삭제</button>
+                </form>
+            </div>
+        </div>
+    </article>`;
+    }
+</script>
 </body>
 </html>

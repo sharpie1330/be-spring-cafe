@@ -13,6 +13,7 @@ import codesquad.springcafe.global.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -31,7 +32,7 @@ public class CommentService {
     }
 
     // 댓글 등록
-    public Long createComment(Long userId, CommentRequest commentCreateRequest) {
+    public CommentResponse createComment(Long userId, CommentRequest commentCreateRequest) {
         // 사용자 인증
         User user = userRepository.findById(userId, false).orElseThrow(() -> new NoSuchElementException("존재하지 않는 사용자압니다."));
 
@@ -45,7 +46,9 @@ public class CommentService {
 
         // 댓글 등록
         Comment saved = commentRepository.save(commentCreateRequest.toComment(user, question));
-        return saved.getId();
+        return new CommentResponse(saved.getId(), saved.getQuestionId(), saved.getUser().getLoginId(), saved.getUser().getName(),
+                saved.getContent(), DateUtils.convertLocalDateTimeToString(LocalDateTime.now()), false,
+                saved.getUser().getId().equals(userId), false);
     }
 
     // 댓글 조회
@@ -56,7 +59,7 @@ public class CommentService {
         List<CommentResponse> comments = commentRepository.findByQuestionId(questionId)
                 .stream().map(c -> {
                     boolean isUserWithdrawn = c.getUser().getDeleted();
-                    return new CommentResponse(c.getId(), isUserWithdrawn ? "탈퇴한 사용자" : c.getUser().getLoginId(),
+                    return new CommentResponse(c.getId(), c.getQuestionId(), isUserWithdrawn ? "탈퇴한 사용자" : c.getUser().getLoginId(),
                             isUserWithdrawn ? "탈퇴한 사용자" : c.getUser().getName(), c.getContent(),
                             DateUtils.convertLocalDateTimeToString(c.getModifiedAt()),
                             c.getModified(), c.getUser().getId().equals(user.getId()), isUserWithdrawn);
